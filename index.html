@@ -134,7 +134,7 @@ textarea{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;r
 </div>
 <label>Headers (JSON)</label>
 <textarea id="apiHeaders" rows="2">{"Content-Type":"application/json"}</textarea>
-<label>Body — pakai {{wallet}} {{twitter}} {{discord}} {{email}} {{timestamp}}</label>
+<label>Body — pakai {{wallet}} {{twitter}} {{username}} {{tweet}} {{discord}} {{email}} {{timestamp}}</label>
 <textarea id="apiBody" rows="6">{
   "wallet": "{{wallet}}",
   "twitter": "{{twitter}}",
@@ -186,6 +186,9 @@ function saveAcc(){
     updateSelects(); toast('Tersimpan '+accounts.length+' akun');
   }catch(e){toast('JSON invalid')}
 }
+function hstr(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h}
+function fakeUser(w){return '@user_'+w.slice(2,6).toLowerCase()+w.slice(-4).toLowerCase()}
+function fakeTweet(u,w){let h=hstr(w);let id=('19'+String(h).padStart(10,'0')+w.slice(6,12)).slice(0,19);return 'https://x.com/'+u.replace('@','')+'/status/'+id}
 function exportAcc(){
   const blob=new Blob([JSON.stringify(accounts,null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='wl.json'; a.click();
@@ -208,11 +211,16 @@ function importWallets(e){
       imported.forEach(a=>{
         if(!existing.has(a.wallet.toLowerCase())){
           maxN++; a.label='Wallet '+maxN;
+          const u=fakeUser(a.wallet); a.twitter=u; a.username=u; a.tweet=fakeTweet(u,a.wallet);
           accounts.push(a); existing.add(a.wallet.toLowerCase()); added++;
         }
       });
       // ensure old accounts without label get one
-      accounts.forEach((a,i)=>{ if(!a.label) a.label='Wallet '+(i+1); });
+      accounts.forEach((a,i)=>{
+        if(!a.label) a.label='Wallet '+(i+1);
+        if(!a.twitter){const u=fakeUser(a.wallet||''); a.twitter=u; a.username=u; a.tweet=fakeTweet(u,a.wallet||'');}
+        if(!a.tweet && a.twitter) a.tweet=fakeTweet(a.twitter,a.wallet||'');
+      });
       localStorage.setItem(LS,JSON.stringify(accounts));
       document.getElementById('accJson').value=JSON.stringify(accounts,null,2);
       updateSelects(); toast('Import '+added+' wallet ('+imported.length+' total, private_key dibuang)');
@@ -279,8 +287,10 @@ function genGfLinks(){
   if(!accounts.length) return toast('Isi Akun dulu');
   const out=document.getElementById('gfOut'); out.innerHTML='';
   accounts.forEach((acc,i)=>{
+    // ensure tweet for gform mapping like "tweet" field
+    if(!acc.tweet && acc.wallet) acc.tweet=fakeTweet(acc.twitter||fakeUser(acc.wallet), acc.wallet);
     const params=new URLSearchParams();
-    map.forEach(l=>{const [e,f]=l.split('=').map(s=>s.trim()); if(e&&f&&acc[f]) params.set(e,acc[f])});
+    map.forEach(l=>{const [e,f]=l.split('=').map(s=>s.trim()); if(e&&f){let v=acc[f]; if(f.toLowerCase().includes('tweet')&&!v) v=acc.tweet; if(v) params.set(e,v);}});
     const url=base+'?'+params.toString();
     const d=document.createElement('div'); d.className='link';
     d.innerHTML=`<span class="mono">${url}</span><button class="btn sm" onclick="window.open('${url}','_blank')">Buka</button>`;
