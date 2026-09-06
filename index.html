@@ -52,6 +52,14 @@ textarea{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;r
 .f:last-child{border:0}
 .link{padding:10px 12px;background:#0e0e10;border:1px solid var(--line);border-radius:10px;margin-top:8px;display:flex;align-items:center;gap:10px}
 .link .mono{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qcard{background:#0e0e10;border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:10px}
+.qcard .qt{font-size:13px;font-weight:700;margin-bottom:8px}
+.qcard .qd{font-size:11px;color:var(--mut);margin-bottom:10px}
+.qopts{display:flex;gap:8px;flex-wrap:wrap}
+.qopts label{display:flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid var(--line2);border-radius:999px;font-size:12px;text-transform:none;letter-spacing:0;margin:0;cursor:pointer;background:#141418}
+.qopts label.on{background:var(--tx);color:#000;border-color:var(--tx)}
+.qfill{margin-top:8px;display:flex;gap:6px}
+.qfill select{flex:1;max-width:220px}
 .bm{padding:8px 14px;border-radius:999px;border:1px solid var(--line2);background:#1e1e22;color:var(--tx);font-size:12px;font-weight:700;text-decoration:none;display:inline-block}
 .bm.primary{background:var(--acc);color:#000;border-color:var(--acc)}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--tx);color:#000;padding:10px 14px;border-radius:999px;font-size:12px;font-weight:700;opacity:0;pointer-events:none;transition:.2s;z-index:50}
@@ -117,8 +125,9 @@ textarea{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;r
 <button class="btn ghost" onclick="genGfLinks()">Generate Links</button>
 </div>
 <label>Mapping</label>
-<textarea id="gfMap" rows="3" placeholder="entry.123=wallet"></textarea>
+<textarea id="gfMap" rows="3" placeholder="entry.123=wallet" style="display:none"></textarea>
 <div id="gfFields" class="fields"></div>
+<div id="gfFormPreview"></div>
 <div id="gfOut"></div>
 </div>
 </div>
@@ -255,30 +264,68 @@ async function detectGForm(){
     try{const r=await fetch(p);if(!r.ok) throw 0; html=await r.text(); break;}catch{}
   }
   if(!html) return toast('Gagal — pakai Sniff > Detect di halaman form');
-  const entries=[...html.matchAll(/entry\.(\d+)/g)].map(m=>'entry.'+m[1]);
-  const uniq=[...new Set(entries)];
-  const labels={};
-  // try FB_PUBLIC_LOAD_DATA parse
+  // parse via FB_PUBLIC_LOAD_DATA
   let fb=null; try{const mm=html.match(/FB_PUBLIC_LOAD_DATA_\s*=\s*(\[.*?\]);/s); if(mm) fb=JSON.parse(mm[1]);}catch{}
-  if(fb && fb[1] && fb[1][1]){
-    try{fb[1][1].forEach(q=>{const title=q[1]; const entry=q[4]&&q[4][0]&&q[4][0][0]; if(entry&&title) labels['entry.'+entry]=String(title).trim();});}catch{}
+  const qs = (fb && fb[1] && fb[1][1]) ? fb[1][1] : [];
+  if(!qs.length){
+    const entries=[...html.matchAll(/entry\.(\d+)/g)].map(m=>'entry.'+m[1]);
+    const uniq=[...new Set(entries)];
+    document.getElementById('gfFields').innerHTML=uniq.map(e=>`<div class="f"><span class="mono">${e}</span></div>`).join('');
+    return;
   }
-  // fallback data-params pattern
-  { const re=/\[(\d{6,}),&quot;(.*?)&quot;/g; let m; while((m=re.exec(html))) if(uniq.includes('entry.'+m[1]) && !labels['entry.'+m[1]]) labels['entry.'+m[1]]=m[2]; }
-  document.getElementById('gfFields').innerHTML=uniq.map(e=>`<div class="f"><span class="mono">${e}</span><span style="font-size:11px;color:var(--mut)">${labels[e]||'—'}</span></div>`).join('') || '<span style="color:var(--mut);font-size:12px">no field</span>';
-  document.getElementById('gfMap').value=uniq.map(e=>{
-    const lab=(labels[e]||'').toLowerCase();
-    let f='custom';
-      if(lab.includes('wallet')||lab.includes('address')) f='wallet';
-      else if(lab.includes('follow') && lab.includes('pixel')) f='twitter';
-      else if(lab.includes('like')||lab.includes('pinned')) f='twitter';
-      else if(lab.includes('why')||lab.includes('rebel')) f='custom';
-      else if(lab.includes('discord')) f='discord';
-      else if(lab.includes('twitter')||lab.includes('handle')) f='twitter';
-      else if(lab.includes('email')) f='email';
-    return e+'='+f;
-  }).join('\n');
-  toast('Detect '+uniq.length+' field');
+  // build interactive preview
+  const preview=document.getElementById('gfFormPreview');
+  preview.innerHTML='';
+  const mapLines=[];
+  qs.forEach(q=>{
+    const qid=q[0], title=(q[1]||'').trim(), type=q[3], raw=q[4];
+    if(!title) return;
+    if(!raw || !raw[0]) return;
+    const entry=raw[0][0];
+    const opts=raw[0][1];
+    const qType= type===2 ? (opts && opts.some(o=>Array.isArray(o)) ? 'radio' : 'text') : (type===1 ? 'text' : 'other');
+    const isChoice = Array.isArray(opts) && opts.length && Array.isArray(opts[0]);
+    // guess field
+    const lab=title.toLowerCase();
+    let field='custom';
+    if(lab.includes('wallet')||lab.includes('address')) field='wallet';
+    else if(lab.includes('follow') && lab.includes('pixel')) field='twitter';
+    else if(lab.includes('like')||lab.includes('pinned')) field='twitter';
+    else if(lab.includes('why')||lab.includes('rebel')) field='custom';
+    else if(lab.includes('discord')) field='discord';
+    else if(lab.includes('twitter')||lab.includes('handle')) field='twitter';
+    else if(lab.includes('email')) field='email';
+    mapLines.push('entry.'+entry+'='+field);
+
+    const card=document.createElement('div'); card.className='qcard';
+    const qt=document.createElement('div'); qt.className='qt'; qt.textContent=title; card.appendChild(qt);
+    const qd=document.createElement('div'); qd.className='qd'; qd.textContent='entry.'+entry; card.appendChild(qd);
+
+    if(isChoice){
+      const optsWrap=document.createElement('div'); optsWrap.className='qopts';
+      opts.forEach(o=>{
+        const labOpt=document.createElement('label');
+        const inp=document.createElement('input'); inp.type='radio'; inp.name='q_'+entry; inp.value=o[0]; inp.style.display='none';
+        inp.onchange=()=>{ optsWrap.querySelectorAll('label').forEach(l=>l.classList.remove('on')); labOpt.classList.add('on'); };
+        labOpt.appendChild(inp); labOpt.append(' '+o[0]);
+        labOpt.onclick=()=>{ inp.checked=true; inp.dispatchEvent(new Event('change')); };
+        optsWrap.appendChild(labOpt);
+      });
+      card.appendChild(optsWrap);
+    } else {
+      const row=document.createElement('div'); row.className='qfill';
+      const sel=document.createElement('select');
+      sel.innerHTML='<option value="">— pilih akun —</option>' + accounts.map((a,i)=>`<option value="${i}">${a.label||('Wallet '+(i+1))}</option>`).join('');
+      const inp=document.createElement('input'); inp.placeholder= field==='wallet' ? '0x...' : (title);
+      sel.onchange=()=>{const a=accounts[sel.value]; if(a){let v=a[field]||a.wallet||''; if(field==='custom') v=a.wallet||''; inp.value=v;}};
+      row.appendChild(sel); row.appendChild(inp);
+      card.appendChild(row);
+    }
+    preview.appendChild(card);
+  });
+  document.getElementById('gfMap').value=mapLines.join('\n');
+  document.getElementById('gfFields').innerHTML='<div style="font-size:11px;color:var(--mut);margin-top:8px">'+qs.length+' field detected</div>';
+  toast('Detect '+qs.filter(q=>q[1]).length+' field');
 }
 function genGfLinks(){
   const base=document.getElementById('gfUrl').value.trim().split('?')[0];
