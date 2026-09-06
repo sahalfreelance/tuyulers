@@ -218,6 +218,7 @@ async function detectGForm(){
   const logEl=document.getElementById('gfLog');
   logEl.textContent='fetching...\n';
   const proxies=[
+    '/api/proxy?url='+encodeURIComponent(url),
     'https://api.allorigins.win/raw?url='+encodeURIComponent(url),
     'https://corsproxy.io/?'+encodeURIComponent(url),
   ];
