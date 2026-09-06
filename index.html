@@ -249,11 +249,25 @@ async function detectGForm(){
   if(!html) return toast('Gagal — pakai Sniff > Detect di halaman form');
   const entries=[...html.matchAll(/entry\.(\d+)/g)].map(m=>'entry.'+m[1]);
   const uniq=[...new Set(entries)];
-  const labels={}; const re=/\[(\d{6,}),&quot;(.*?)&quot;/g; let m; while((m=re.exec(html))) if(uniq.includes('entry.'+m[1])) labels['entry.'+m[1]]=m[2];
+  const labels={};
+  // try FB_PUBLIC_LOAD_DATA parse
+  let fb=null; try{const mm=html.match(/FB_PUBLIC_LOAD_DATA_\s*=\s*(\[.*?\]);/s); if(mm) fb=JSON.parse(mm[1]);}catch{}
+  if(fb && fb[1] && fb[1][1]){
+    try{fb[1][1].forEach(q=>{const title=q[1]; const entry=q[4]&&q[4][0]&&q[4][0][0]; if(entry&&title) labels['entry.'+entry]=String(title).trim();});}catch{}
+  }
+  // fallback data-params pattern
+  { const re=/\[(\d{6,}),&quot;(.*?)&quot;/g; let m; while((m=re.exec(html))) if(uniq.includes('entry.'+m[1]) && !labels['entry.'+m[1]]) labels['entry.'+m[1]]=m[2]; }
   document.getElementById('gfFields').innerHTML=uniq.map(e=>`<div class="f"><span class="mono">${e}</span><span style="font-size:11px;color:var(--mut)">${labels[e]||'—'}</span></div>`).join('') || '<span style="color:var(--mut);font-size:12px">no field</span>';
   document.getElementById('gfMap').value=uniq.map(e=>{
     const lab=(labels[e]||'').toLowerCase();
-    let f='custom'; if(lab.includes('wallet')||lab.includes('address')) f='wallet'; else if(lab.includes('discord')) f='discord'; else if(lab.includes('twitter')||lab.includes('handle')||lab.includes('follow')||lab.includes('pinned')) f='twitter'; else if(lab.includes('email')) f='email';
+    let f='custom';
+      if(lab.includes('wallet')||lab.includes('address')) f='wallet';
+      else if(lab.includes('follow') && lab.includes('pixel')) f='twitter';
+      else if(lab.includes('like')||lab.includes('pinned')) f='twitter';
+      else if(lab.includes('why')||lab.includes('rebel')) f='custom';
+      else if(lab.includes('discord')) f='discord';
+      else if(lab.includes('twitter')||lab.includes('handle')) f='twitter';
+      else if(lab.includes('email')) f='email';
     return e+'='+f;
   }).join('\n');
   toast('Detect '+uniq.length+' field');
