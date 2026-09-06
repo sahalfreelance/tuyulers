@@ -197,17 +197,22 @@ function importWallets(e){
     try{
       let data=JSON.parse(r.result);
       if(!Array.isArray(data)) data=[data];
-      // only take address/wallet, drop private_key
+      // only take address/wallet, drop private_key — ponytail: no decrypt/sign, add when need tx
       const imported=data.map(x=>({wallet: x.wallet||x.address||x.addr||''})).filter(x=>x.wallet);
       if(!imported.length) return toast('Tidak ada address');
-      // merge or replace? merge existing
       const existing=new Set(accounts.map(a=>(a.wallet||'').toLowerCase()));
+      // next label number
+      let maxN=0; accounts.forEach(a=>{const m=(a.label||'').match(/Wallet\s+(\d+)/); if(m) maxN=Math.max(maxN,parseInt(m[1]))});
+      if(!maxN) maxN=accounts.length;
       let added=0;
       imported.forEach(a=>{
         if(!existing.has(a.wallet.toLowerCase())){
+          maxN++; a.label='Wallet '+maxN;
           accounts.push(a); existing.add(a.wallet.toLowerCase()); added++;
         }
       });
+      // ensure old accounts without label get one
+      accounts.forEach((a,i)=>{ if(!a.label) a.label='Wallet '+(i+1); });
       localStorage.setItem(LS,JSON.stringify(accounts));
       document.getElementById('accJson').value=JSON.stringify(accounts,null,2);
       updateSelects(); toast('Import '+added+' wallet ('+imported.length+' total, private_key dibuang)');
@@ -218,7 +223,7 @@ function importWallets(e){
 }
 function updateSelects(){
   document.getElementById('accCount').textContent=accounts.length;
-  const opts=accounts.map((a,i)=>`<option value="${i}">${(a.wallet||a.address||a.discord||'akun '+(i+1))} ${(a.twitter||a.handle||'')}</option>`).join('');
+  const opts=accounts.map((a,i)=>`<option value="${i}">${a.label||('Wallet '+(i+1))} — ${a.wallet||a.address||''}</option>`).join('');
   document.getElementById('accSelect').innerHTML=opts;
   document.getElementById('apiAcc').innerHTML='<option value="-1">semua</option>'+opts;
   buildBM();
