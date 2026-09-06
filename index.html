@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WL Filler — Auto Detect</title>
+<style>
+*{box-sizing:border-box;font-family:system-ui,sans-serif}
+body{margin:0;background:#0f0f0f;color:#eaeaea}
+header{padding:14px 20px;border-bottom:1px solid #222;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+h1{margin:0;font-size:17px;letter-spacing:.5px}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+nav button{padding:7px 12px;border:1px solid #333;background:#1a1a1a;color:#ccc;border-radius:999px;cursor:pointer;font-size:13px}
+nav button.active{background:#fff;color:#000;border-color:#fff;font-weight:700}
+main{max-width:940px;margin:0 auto;padding:18px}
+.tab{display:none}.tab.active{display:block}
+.card{background:#1a1a1a;border:1px solid #262626;border-radius:14px;padding:16px;margin:12px 0}
+label{display:block;font-size:12px;color:#999;margin:8px 0 4px}
+input,textarea,select{width:100%;padding:10px;background:#0f0f0f;border:1px solid #333;color:#fff;border-radius:10px}
+textarea{font-family:monospace;font-size:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1}
+.btn{padding:10px 14px;border-radius:10px;border:0;background:#fff;color:#000;font-weight:700;cursor:pointer}
+.btn.sec{background:#222;color:#fff;border:1px solid #333}
+.btn.sm{padding:7px 11px;font-size:13px}
+.mono{font-family:monospace;font-size:12px;word-break:break-all}
+.log{max-height:320px;overflow:auto;background:#0f0f0f;border:1px solid #222;padding:10px;border-radius:10px;font-size:12px;white-space:pre-wrap}
+.badge{display:inline-block;padding:3px 8px;background:#1a1a1a;border:1px solid #333;border-radius:999px;font-size:11px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:600px){.kv{grid-template-columns:1fr}}
+.tag{padding:2px 7px;background:#111;border:1px solid #2a2a2a;border-radius:999px;font-size:11px;color:#aaa}
+.ok{color:#3dd68c}.err{color:#ff5a5a}
+</style>
+</head>
+<body>
+<header>
+<h1>WL FILLER</h1>
+<nav id="tabs">
+<button data-tab="akun" class="active">1. Akun</button>
+<button data-tab="gform">2. Google Form</button>
+<button data-tab="api">3. Custom API / Owlarc</button>
+<button data-tab="sniff">4. Sniffer</button>
+<button data-tab="help">Help</button>
+</nav>
+<span class="badge" id="accCount">0 akun</span>
+</header>
+<main>
+
+<!-- AKUN -->
+<div id="tab-akun" class="tab active">
+<div class="card">
+<h3>Data Akun</h3>
+<p style="font-size:12px;color:#888">Simpan di localStorage (tidak dikirim). Field bebas — wallet, discord, twitter, email, dll. Nanti dipakai {{wallet}} di tab API + auto-fill Google Form.</p>
+<textarea id="accJson" rows="9" placeholder='[{"wallet":"0xabc...","discord":"user#1234","twitter":"@handle","email":"a@b.com"}]'></textarea>
+<div class="row" style="margin-top:10px">
+<button class="btn" onclick="saveAcc()">Simpan</button>
+<button class="btn sec" onclick="exportAcc()">Export wl.json</button>
+<select id="accSelect"></select>
+</div>
+</div>
+<div class="card">
+<b style="font-size:13px">Contoh wl.json dengan 2 kategori (WL / GTD)</b>
+<pre class="mono" style="background:#0f0f0f;padding:10px;border-radius:8px">{
+  "wl": ["0x111...","0x222..."],
+  "gtd": ["0x333..."]
+}
+// atau
+[{"wallet":"0x...","qty":2,"tier":"wl"},{"wallet":"0x...","qty":1,"tier":"gtd"}]</pre>
+</div>
+</div>
+
+<!-- GFORM -->
+<div id="tab-gform" class="tab">
+<div class="card">
+<h3>Google Form — Auto Detect entry.xxx</h3>
+<p style="font-size:12px;color:#888">Paste URL Google Form → <b>Auto Detect</b>. Tool akan fetch form via CORS proxy, parse <span class="mono">entry.123</span> + label pertanyaannya. Kalau proxy diblok, pakai Bookmarklet di tab Sniffer.</p>
+<label>Google Form URL</label>
+<input id="gfUrl" value="https://docs.google.com/forms/d/e/1FAIpQLSenfmPeBEWnQ6CcmkXkwWJfchAspQu2Jxx-BE2y8Psec0KaTg/viewform">
+<div class="row" style="margin-top:8px">
+<button class="btn" onclick="detectGForm()">🔍 Auto Detect Fields</button>
+<button class="btn sec" onclick="genGfLinks()">Generate Prefill Links</button>
+</div>
+<label style="margin-top:12px">Mapping (auto-terisi — bisa edit manual)</label>
+<textarea id="gfMap" rows="4" placeholder="entry.123456789=wallet"></textarea>
+<div id="gfFields" style="margin-top:10px"></div>
+<div id="gfOut" style="margin-top:10px"></div>
+<div class="log" id="gfLog" style="margin-top:10px"></div>
+</div>
+<div class="card" style="border-style:dashed">
+<b>Trial lu terdeteksi:</b> PixelRebelhoods Whitelist — 4 field:
+<div class="mono" style="margin-top:6px">
+• Follow @pixelrebelhoods — entry.839997441 (Yes/No)<br>
+• Like and RT pinned post — entry.1454126146 (Yes/No)<br>
+• Why do you want to join the Rebels? — entry.375113864 (paragraph)<br>
+• Comment wallet address — entry.1564133707 (short answer)
+</div>
+</div>
+</div>
+
+<!-- API / OWLARC -->
+<div id="tab-api" class="tab">
+<div class="card">
+<h3>Custom API — Auto Detect Payload (Owlarc contoh)</h3>
+<p style="font-size:12px;color:#888">Owlarc terdeteksi submit ke <span class="mono">script.google.com/macros/s/AKfyc.../exec</span> dengan field <span class="mono">x_handle, wallet, post_link, timestamp</span>. Tab ini bisa detect API apapun: buka tab Sniffer.</p>
+<label>Detected Owlarc endpoint</label>
+<input id="apiUrl" value="https://script.google.com/macros/s/AKfycbzf4JTz9qIQh9Oq0lE4PzzDnERBZjpU5WxIq5fiNHm3REMKLinFy2GAABWOnkDuckBm/exec">
+<div class="row">
+<div><label>Method</label><select id="apiMethod"><option>POST</option><option>GET</option><option>PUT</option></select></div>
+<div><label>Delay antar akun (ms)</label><input id="apiDelay" value="900" type="number"></div>
+</div>
+<label>Headers (JSON) — bisa pakai {{wallet}} juga</label>
+<textarea id="apiHeaders" rows="2">{"Content-Type":"application/x-www-form-urlencoded"}</textarea>
+<label>Body Template — Owlarc pakai form-encoded, tapi tool support JSON juga</label>
+<textarea id="apiBody" rows="7">x_handle={{twitter}}&wallet={{wallet}}&post_link=Submitted before X post&timestamp={{timestamp}}</textarea>
+<p style="font-size:11px;color:#666">Variable tersedia: {{wallet}} {{discord}} {{twitter}} {{email}} {{telegram}} {{timestamp}} — nama field bebas dari wl.json</p>
+<div class="row">
+<select id="apiAcc"></select>
+<button class="btn" onclick="sendOne()">Kirim 1 akun</button>
+<button class="btn sec" onclick="sendAll()">Kirim semua</button>
+<button class="btn sec" onclick="detectApiHint()">Auto Detect API (Sniffer)</button>
+</div>
+<div class="log" id="apiLog"></div>
+</div>
+<div class="card">
+<b>Template cepat:</b>
+<div class="row" style="margin-top:8px">
+<button class="btn sm sec" onclick="loadOwlarc()">Load Owlarc payload</button>
+<button class="btn sm sec" onclick="loadJsonPayload()">Load JSON payload</button>
+<button class="btn sm sec" onclick="loadFormPayload()">Load form-encoded payload</button>
+</div>
+</div>
+</div>
+
+<!-- SNIFFER -->
+<div id="tab-sniff" class="tab">
+<div class="card">
+<h3>Auto Detect — Sniffer (Google Form + API)</h3>
+<p style="font-size:12px;color:#888">Website di GitHub Pages <b>tidak bisa</b> akses DOM / network tab lain karena CORS. Sniffer jalan <b>di halaman target itu sendiri</b> via bookmarklet:</p>
+<ol style="font-size:13px;color:#bbb">
+<li>Drag link di bawah ke Bookmark Bar</li>
+<li>Buka halaman form/API target (Google Form atau owlarc.xyz)</li>
+<li>Klik bookmark → auto scan entry.xxx + hook fetch/XHR</li>
+<li>Submit form sekali → sniffer akan log URL + payload lengkap → copy ke tab API</li>
+</ol>
+<div class="row">
+<a id="bmDetect" class="btn sm" href="#">🔍 WL Detect</a>
+<a id="bmFill" class="btn sm sec" href="#">✍️ WL AutoFill</a>
+</div>
+<pre class="mono" id="sniffCode" style="background:#0f0f0f;padding:10px;border-radius:8px;overflow:auto;margin-top:10px"></pre>
+<label>Manual console sniff (paste di DevTools halaman target)</label>
+<textarea id="consoleSniff" rows="6" readonly></textarea>
+<button class="btn sm sec" onclick="copySniff()">Copy</button>
+</div>
+<div class="card">
+<h3>Kenapa tidak 100% auto dari website?</h3>
+<p style="font-size:12px;color:#888">
+• <b>Google Form</b>: <span class="mono">docs.google.com</span> tidak kasih header <span class="mono">Access-Control-Allow-Origin</span>. Fetch langsung dari GitHub Pages diblok browser. Solusi: via CORS proxy (AllOrigins) atau bookmarklet. Tool ini coba proxy dulu otomatis.<br>
+• <b>Custom API</b>: tiap web beda endpoint/header/auth. Tidak ada cara “scan internet” — harus lihat network tab saat submit. Sniffer di atas hook <span class="mono">fetch</span> + <span class="mono">XMLHttpRequest</span> + form submit, jadi apapun API-nya kelog.
+</p>
+</div>
+</div>
+
+<!-- HELP -->
+<div id="tab-help" class="tab">
+<div class="card">
+<h3>Deploy ke GitHub Pages</h3>
+<pre class="mono" style="background:#0f0f0f;padding:10px;border-radius:8px">cd whitelist-filler
+git init && git add index.html && git commit -m "init"
+gh repo create whitelist-filler --public --source=. --push
+# Settings → Pages → Branch: main / root</pre>
+<p style="font-size:12px;color:#888">Hasil: https://username.github.io/whitelist-filler/</p>
+</div>
+</div>
+
+</main>
+<script>
+const LS='wl_accounts_v1';
+let accounts=[];
+function loadAcc(){
+  try{accounts=JSON.parse(localStorage.getItem(LS)||'[]')}catch{accounts=[]}
+  document.getElementById('accJson').value=JSON.stringify(accounts,null,2);
+  updateSelects();
+}
+function saveAcc(){
+  try{
+    const v=JSON.parse(document.getElementById('accJson').value||'[]');
+    if(!Array.isArray(v)) throw 1;
+    accounts=v; localStorage.setItem(LS,JSON.stringify(accounts));
+    updateSelects(); log('gfLog','akun disimpan: '+accounts.length);
+  }catch(e){alert('JSON tidak valid')}
+}
+function exportAcc(){
+  const blob=new Blob([JSON.stringify(accounts,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='wl.json'; a.click();
+}
+function updateSelects(){
+  document.getElementById('accCount').textContent=accounts.length+' akun';
+  const opts=accounts.map((a,i)=>`<option value="${i}">${(a.wallet||a.address||a.discord||'akun '+(i+1))} - ${a.twitter||a.handle||''}</option>`).join('');
+  document.getElementById('accSelect').innerHTML=opts;
+  document.getElementById('apiAcc').innerHTML='<option value="-1">-- semua --</option>'+opts;
+  buildBM();
+}
+function tpl(str, acc){
+  const extra={timestamp:new Date().toISOString()};
+  const ctx={...extra,...acc};
+  return str.replace(/\{\{(\w+)\}\}/g,(_,k)=>ctx[k]??'');
+}
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.getElementById('tab-'+b.dataset.tab).classList.add('active');
+});
+
+// Google Form detect
+async function detectGForm(){
+  const url=document.getElementById('gfUrl').value.trim();
+  if(!url) return alert('isi URL form');
+  const logEl=document.getElementById('gfLog');
+  logEl.textContent='fetching...\n';
+  const proxies=[
+    'https://api.allorigins.win/raw?url='+encodeURIComponent(url),
+    'https://corsproxy.io/?'+encodeURIComponent(url),
+  ];
+  let html=null, used='';
+  for(const p of proxies){
+    try{
+      logEl.textContent+='try '+p.slice(0,60)+'...\n';
+      const r=await fetch(p);
+      if(!r.ok) throw new Error(r.status);
+      html=await r.text();
+      used=p; break;
+    }catch(e){ logEl.textContent+='  fail: '+e.message+'\n'; }
+  }
+  if(!html){
+    logEl.textContent+='\nProxy diblok / CORS error.\nPakai Bookmarklet WL Detect di halaman form langsung (tab Sniffer).\n';
+    return;
+  }
+  logEl.textContent+='OK via '+used+' ('+html.length+' bytes)\n';
+  // parse entries
+  const entries=[...html.matchAll(/entry\.(\d+)/g)].map(m=>'entry.'+m[1]);
+  const uniq=[...new Set(entries)];
+  // try to extract labels via data-params or FB_PUBLIC_LOAD_DATA
+  const labels={};
+  // data-params pattern: [123456,"label"
+  const re=/\[(\d{6,}),&quot;(.*?)&quot;/g;
+  let m; while((m=re.exec(html))){ if(uniq.includes('entry.'+m[1])) labels['entry.'+m[1]]=m[2]; }
+  // also innerText near entry
+  document.getElementById('gfFields').innerHTML=uniq.map(e=>{
+    const lab=labels[e]||'(label tidak terdeteksi)';
+    return `<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid #222"><span class="mono">${e}</span><span style="font-size:12px;color:#bbb">${lab}</span></div>`;
+  }).join('') || '<span style="color:#888">tidak ada entry.xxx</span>';
+  // auto fill mapping with guess
+  const guessMap=uniq.map(e=>{
+    const lab=(labels[e]||'').toLowerCase();
+    let field='custom';
+    if(lab.includes('wallet')||lab.includes('address')||lab.includes('evm')) field='wallet';
+    else if(lab.includes('follow')||lab.includes('discord')) field='discord';
+    else if(lab.includes('like')||lab.includes('retweet')||lab.includes('twitter')||lab.includes('handle')) field='twitter';
+    else if(lab.includes('why')||lab.includes('rebel')) field='discord';
+    else if(lab.includes('email')) field='email';
+    return e+'='+field;
+  }).join('\n');
+  document.getElementById('gfMap').value=guessMap;
+  logEl.textContent+='terdeteksi '+uniq.length+' field: '+uniq.join(', ')+'\nMapping auto-terisi (edit kalau salah).\n';
+}
+
+function genGfLinks(){
+  const base=document.getElementById('gfUrl').value.trim().split('?')[0];
+  const map=document.getElementById('gfMap').value.trim().split('\n').filter(Boolean);
+  if(!base) return alert('isi URL form');
+  if(!accounts.length) return alert('isi tab Akun dulu');
+  const out=document.getElementById('gfOut'); out.innerHTML='';
+  accounts.forEach((acc,i)=>{
+    const params=new URLSearchParams();
+    map.forEach(l=>{
+      const [entry,field]=l.split('=').map(s=>s.trim());
+      if(entry&&field&&acc[field]) params.set(entry, acc[field]);
+      else if(entry&&field&&acc[field.toLowerCase()]) params.set(entry, acc[field.toLowerCase()]);
+    });
+    const url=base+'?'+params.toString();
+    const div=document.createElement('div'); div.className='card';
+    div.innerHTML=`<div class="mono" style="font-size:11px">${url}</div><div style="margin-top:8px;display:flex;gap:6px"><button class="btn sm" onclick="window.open('${url}','_blank')">Buka akun ${i+1}</button><button class="btn sm sec" onclick="navigator.clipboard.writeText('${url}')">Copy</button></div>`;
+    out.appendChild(div);
+  });
+}
+
+// API
+function aLog(s){ const el=document.getElementById('apiLog'); el.textContent+='['+new Date().toLocaleTimeString()+'] '+s+'\n'; el.scrollTop=el.scrollHeight; }
+function log(id,s){ const el=document.getElementById(id); if(el) el.textContent+='['+new Date().toLocaleTimeString()+'] '+s+'\n'; }
+function loadOwlarc(){
+  document.getElementById('apiUrl').value='https://script.google.com/macros/s/AKfycbzf4JTz9qIQh9Oq0lE4PzzDnERBZjpU5WxIq5fiNHm3REMKLinFy2GAABWOnkDuckBm/exec';
+  document.getElementById('apiHeaders').value='{"Content-Type":"application/x-www-form-urlencoded"}';
+  document.getElementById('apiBody').value='x_handle={{twitter}}&wallet={{wallet}}&post_link=Submitted before X post&timestamp={{timestamp}}';
+}
+function loadJsonPayload(){ document.getElementById('apiHeaders').value='{"Content-Type":"application/json"}'; document.getElementById('apiBody').value='{\n  "wallet": "{{wallet}}",\n  "discord": "{{discord}}",\n  "twitter": "{{twitter}}",\n  "email": "{{email}}"\n}'; }
+function loadFormPayload(){ document.getElementById('apiHeaders').value='{"Content-Type":"application/x-www-form-urlencoded"}'; document.getElementById('apiBody').value='wallet={{wallet}}&twitter={{twitter}}&discord={{discord}}&email={{email}}'; }
+function detectApiHint(){ document.querySelector('[data-tab="sniff"]').click(); }
+async function sendOne(){
+  const idx=document.getElementById('apiAcc').value;
+  const list = idx==-1 ? accounts : [accounts[idx]];
+  if(!list.length) return alert('tidak ada akun');
+  await sendList(list);
+}
+async function sendAll(){ if(!accounts.length) return alert('tidak ada akun'); await sendList(accounts); }
+async function sendList(list){
+  const url=document.getElementById('apiUrl').value.trim();
+  const method=document.getElementById('apiMethod').value;
+  let headers={}; try{ headers=JSON.parse(document.getElementById('apiHeaders').value||'{}')}catch{return alert('headers JSON invalid')}
+  const bodyTpl=document.getElementById('apiBody').value;
+  const delay=parseInt(document.getElementById('apiDelay').value||'800');
+  if(!url) return alert('isi URL');
+  for(let i=0;i<list.length;i++){
+    const acc=list[i];
+    let bodyStr=tpl(bodyTpl, acc);
+    let h={}; for(const [k,v] of Object.entries(headers)) h[k]=tpl(String(v), acc);
+    // detect json vs form-encoded
+    const isJson = bodyStr.trim().startsWith('{');
+    let body=isJson? bodyStr : bodyStr;
+    aLog(`→ ${acc.wallet||acc.twitter||i} ...`);
+    try{
+      const opts={method, headers:h};
+      if(method!=='GET') opts.body=body;
+      const res=await fetch(url, opts);
+      const txt=await res.text();
+      aLog(`  ${res.status} ${res.statusText} : ${txt.slice(0,800)}`);
+    }catch(e){ aLog(`  ERR ${e.message} (kalau CORS, pakai Sniffer/bookmarklet di halaman target)`)}
+    if(i<list.length-1) await new Promise(r=>setTimeout(r,delay));
+  }
+}
+
+// bookmarklets
+function buildBM(){
+  const accIdx=document.getElementById('accSelect').value||0;
+  const acc=accounts[accIdx]||{};
+  const detectCode=`javascript:(()=>{console.clear();let out=[];const entries=[...document.documentElement.innerHTML.matchAll(/entry\\.(\\d+)/g)].map(m=>'entry.'+m[1]);const uniq=[...new Set(entries)];console.log('Google Form entries:',uniq);uniq.forEach(e=>{const el=document.querySelector('[name=\"'+e+'\"],[name=\"'+e+'_sentinel\"]');console.log(e, el?el.outerHTML.slice(0,200):'not found')});const fhook=window.fetch;window.fetch=async function(u,o){console.log('%c[WL SNIFFER fetch]','color:#3dd68c',u,o);try{const r=await fhook.apply(this,arguments);const c=r.clone();c.text().then(t=>console.log('%c[WL SNIFFER response]','color:orange',t.slice(0,2000)));return r}catch(e){console.log('[WL SNIFFER fetch err]',e);throw e}};const ox=XMLHttpRequest.prototype.open,os=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(m,u){this._wlUrl=u;return ox.apply(this,arguments)};XMLHttpRequest.prototype.send=function(b){console.log('%c[WL SNIFFER XHR]','color:#3dd68c',this._wlUrl,b);this.addEventListener('load',function(){console.log('%c[WL SNIFFER XHR resp]','color:orange',this.responseText?.slice(0,2000))});return os.apply(this,arguments)};document.addEventListener('submit',e=>{const fd=new FormData(e.target);console.log('%c[WL SNIFFER form submit]','color:#3dd68c',e.target.action, Object.fromEntries(fd.entries()))},{capture:true});alert('WL Detect aktif\\nEntries: '+uniq.join(', ')+'\\n\\nBuka Console (F12) buat lihat log. Submit form sekali buat capture API payload.');})()`;
+  const fillCode=`javascript:(()=>{const acc=${JSON.stringify(acc).replace(/</g,'\\u003c')};const map={wallet:['wallet','address','evm','0x'],discord:['discord'],twitter:['twitter','x.com','handle'],email:['email'],telegram:['telegram','tg']};let c=0;[...document.querySelectorAll('input,textarea,select')].forEach(el=>{const key=((el.name||'')+' '+(el.placeholder||'')+' '+(el.getAttribute('aria-label')||'')+' '+(el.id||'')).toLowerCase();for(const [field,keys] of Object.entries(map)){if(keys.some(k=>key.includes(k))&&acc[field]){el.focus();el.value=acc[field];el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));c++;break}}});alert('WL AutoFill: terisi '+c+' field. Akun: '+(acc.wallet||acc.discord||acc.twitter||''))})()`;
+  document.getElementById('bmDetect').href=detectCode;
+  document.getElementById('bmFill').href=fillCode;
+  document.getElementById('sniffCode').textContent=detectCode;
+  document.getElementById('consoleSniff').value=`// paste di Console halaman target (F12)
+let out=[]; const f=window.fetch; window.fetch=async function(u,o){console.log('[WL fetch]',u,o);return f.apply(this,arguments)};
+const o=XMLHttpRequest.prototype.open, s=XMLHttpRequest.prototype.send;
+XMLHttpRequest.prototype.open=function(m,u){this._wlUrl=u;return o.apply(this,arguments)};
+XMLHttpRequest.prototype.send=function(b){console.log('[WL XHR]',this._wlUrl,b);this.addEventListener('load',function(){console.log('[WL resp]',this.responseText.slice(0,2000))});return s.apply(this,arguments)};
+console.log('Sniffer aktif - submit form sekali');`;
+}
+function copySniff(){ navigator.clipboard.writeText(document.getElementById('consoleSniff').value); alert('copied'); }
+document.getElementById('accSelect').addEventListener('change', buildBM);
+loadAcc();
+</script>
+</body>
+</html>
