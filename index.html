@@ -434,8 +434,9 @@ async function submitGForm(all){
         body
       });
       const j=await r.json();
-      if(j.ok) ok++; else fail++;
-    }catch{ fail++; }
+      console.log('[submit resp]', j);
+      if(j.ok) ok++; else { fail++; toast('Fail: '+ (j.body||j.error||'').slice(0,80)); }
+    }catch(e){ fail++; console.error(e); }
     if(n<idxs.length-1) await new Promise(r=>setTimeout(r,900));
   }
   toast(`Selesai ok ${ok} fail ${fail}`);
