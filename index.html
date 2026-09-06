@@ -325,6 +325,19 @@ async function detectGForm(){
   });
   document.getElementById('gfMap').value=mapLines.join('\n');
   document.getElementById('gfFields').innerHTML='<div style="font-size:11px;color:var(--mut);margin-top:8px">'+qs.length+' field detected</div>';
+  // capture hidden fields for submit
+  try{
+    const fbzxM=html.match(/name="fbzx"[^>]*value="([^"]+)"/);
+    const fvvM=html.match(/name="fvv"[^>]*value="([^"]+)"/);
+    const phM=html.match(/name="pageHistory"[^>]*value="([^"]+)"/);
+    const prM=html.match(/name="partialResponse"[^>]*value="([^"]+)"/);
+    const drM=html.match(/name="draftResponse"[^>]*value="([^"]+)"/);
+    if(fbzxM) preview.dataset.fbzx=fbzxM[1];
+    if(fvvM) preview.dataset.fvv=fvvM[1];
+    if(phM) preview.dataset.ph=phM[1];
+    if(prM) preview.dataset.pr=prM[1].replace(/&quot;/g,'"');
+    if(drM) preview.dataset.dr=drM[1].replace(/&quot;/g,'"');
+  }catch{}
   // submit bar
   const submitRow=document.createElement('div'); submitRow.className='row'; submitRow.style.marginTop='12px';
   submitRow.innerHTML='<select id="gfSubmitAcc">'+accounts.map((a,i)=>`<option value="${i}">${a.label||('Wallet '+(i+1))}</option>`).join('')+'</select>';
@@ -400,6 +413,12 @@ async function submitGForm(all){
         const a=accounts[selectedIdx]; let v=a[f]||''; if(f==='custom') v=a.wallet||''; if(v) params.set(e,v);
       }
     });
+    // hidden google fields
+    if(preview.dataset.fbzx) params.set('fbzx', preview.dataset.fbzx);
+    if(preview.dataset.fvv) params.set('fvv', preview.dataset.fvv);
+    if(preview.dataset.ph) params.set('pageHistory', preview.dataset.ph);
+    if(preview.dataset.pr) params.set('partialResponse', preview.dataset.pr);
+    if(preview.dataset.dr) params.set('draftResponse', preview.dataset.dr);
     return params.toString();
   }
   const idxs = all ? accounts.map((_,i)=>i) : [parseInt(document.getElementById('gfSubmitAcc').value||'0')];
