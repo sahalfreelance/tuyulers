@@ -423,22 +423,7 @@ async function submitGForm(all){
     return params;
   }
   const idxs = all ? accounts.map((_,i)=>i) : [parseInt(document.getElementById('gfSubmitAcc').value||'0')];
-  // fallback prefill links — always works (GET, browser IP, no 401)
-  const baseView = formResponse.replace('/formResponse','/viewform');
-  const out=document.getElementById('gfOut'); out.innerHTML='';
-  idxs.forEach(idx=>{
-    const params=buildParams(idx);
-    // prefill only entry.* params for GET link
-    const pre=new URLSearchParams();
-    for(const [k,v] of params.entries()) if(k.startsWith('entry.')) pre.set(k,v);
-    const url=baseView+'?'+pre.toString();
-    const d=document.createElement('div'); d.className='link';
-    const label=accounts[idx].label||('Wallet '+(idx+1));
-    d.innerHTML=`<span class="mono" style="flex:1">${label}: ${url.slice(0,72)}...</span><button class="btn sm">Buka</button>`;
-    d.querySelector('button').onclick=()=>window.open(url,'_blank');
-    out.appendChild(d);
-  });
-  // iframe POST attempt (browser IP bypass) + auto-open first for 1 akun
+  // pure iframe submit (browser IP bypass 401) — no auto-open tab
   let iframe=document.getElementById('gform_iframe');
   if(!iframe){
     iframe=document.createElement('iframe');
@@ -450,12 +435,6 @@ async function submitGForm(all){
   for(let n=0;n<idxs.length;n++){
     const i=idxs[n];
     const params=buildParams(i);
-    // auto-open prefill for single submit — user tinggal klik Submit di tab Google
-    if(!all && n===0){
-      const pre=new URLSearchParams();
-      for(const [k,v] of params.entries()) if(k.startsWith('entry.')) pre.set(k,v);
-      window.open(baseView+'?'+pre.toString(),'_blank');
-    }
     toast(`Submit ${accounts[i].label||('Wallet '+(i+1))} ${n+1}/${idxs.length} via iframe...`);
     await new Promise(resolve=>{
       const form=document.createElement('form');
@@ -473,7 +452,7 @@ async function submitGForm(all){
     });
     if(n<idxs.length-1) await new Promise(r=>setTimeout(r,1500));
   }
-  toast(`Iframe ${ok}/${idxs.length} dikirim + link prefill dibuka — klik Submit di tab Google untuk confirm (bypass 401 server)`);
+  toast(`Selesai ${ok}/${idxs.length} via web — cek sheet (iframe browser IP)`);
 }
 function loadJson(){ document.getElementById('apiHeaders').value='{"Content-Type":"application/json"}'; document.getElementById('apiBody').value='{\n  "wallet": "{{wallet}}",\n  "twitter": "{{twitter}}",\n  "discord": "{{discord}}"\n}'; }
 function loadForm(){ document.getElementById('apiHeaders').value='{"Content-Type":"application/x-www-form-urlencoded"}'; document.getElementById('apiBody').value='wallet={{wallet}}&twitter={{twitter}}&discord={{discord}}'; }
