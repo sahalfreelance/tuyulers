@@ -100,6 +100,8 @@ textarea{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;r
 <div class="row" style="margin-top:10px">
 <button class="btn" onclick="saveAcc()">Simpan</button>
 <button class="btn ghost" onclick="exportAcc()">Export</button>
+<button class="btn ghost" onclick="document.getElementById('walletsImport').click()">Import wallets.json</button>
+<input type="file" id="walletsImport" accept=".json" hidden onchange="importWallets(event)">
 </div>
 <select id="accSelect" style="margin-top:10px"></select>
 </div>
@@ -187,6 +189,32 @@ function saveAcc(){
 function exportAcc(){
   const blob=new Blob([JSON.stringify(accounts,null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='wl.json'; a.click();
+}
+function importWallets(e){
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      let data=JSON.parse(r.result);
+      if(!Array.isArray(data)) data=[data];
+      // only take address/wallet, drop private_key
+      const imported=data.map(x=>({wallet: x.wallet||x.address||x.addr||''})).filter(x=>x.wallet);
+      if(!imported.length) return toast('Tidak ada address');
+      // merge or replace? merge existing
+      const existing=new Set(accounts.map(a=>(a.wallet||'').toLowerCase()));
+      let added=0;
+      imported.forEach(a=>{
+        if(!existing.has(a.wallet.toLowerCase())){
+          accounts.push(a); existing.add(a.wallet.toLowerCase()); added++;
+        }
+      });
+      localStorage.setItem(LS,JSON.stringify(accounts));
+      document.getElementById('accJson').value=JSON.stringify(accounts,null,2);
+      updateSelects(); toast('Import '+added+' wallet ('+imported.length+' total, private_key dibuang)');
+    }catch(err){ toast('JSON invalid: '+err.message)}
+    e.target.value='';
+  };
+  r.readAsText(f);
 }
 function updateSelects(){
   document.getElementById('accCount').textContent=accounts.length;
