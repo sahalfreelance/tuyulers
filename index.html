@@ -377,15 +377,12 @@ async function submitGForm(all){
   const formResponse=preview.dataset.formResponse;
   if(!formResponse) return toast('Detect dulu');
   const map=document.getElementById('gfMap').value.trim().split('\n').filter(Boolean);
-  // read current UI values as template per submit
   const qs=preview.querySelectorAll('.qcard');
-  function buildBody(selectedIdx){
+  function buildParams(selectedIdx){
     const params=new URLSearchParams();
-    // radio choices
     qs.forEach(card=>{
       const inp=card.querySelector('input[data-entry]');
       if(inp){
-        // text field - use account data if empty, else ui value
         let v=inp.value.trim();
         if(!v){
           const entry=inp.dataset.entry, field=inp.dataset.field;
@@ -396,50 +393,60 @@ async function submitGForm(all){
         }
         if(v) params.set('entry.'+inp.dataset.entry, v);
       } else {
-        // radio
         const checked=card.querySelector('input[type=radio]:checked');
         if(checked) params.set('entry.'+checked.name.replace('q_',''), checked.value);
         else {
-          // default Yes if exists
           const yes=card.querySelector('input[value=Yes]');
           if(yes) params.set('entry.'+yes.name.replace('q_',''), 'Yes');
         }
       }
     });
-    // also use map fallback for any missing
     map.forEach(l=>{
       const [e,f]=l.split('=').map(s=>s.trim());
       if(!params.has(e)){
         const a=accounts[selectedIdx]; let v=a[f]||''; if(f==='custom') v=a.wallet||''; if(v) params.set(e,v);
       }
     });
-    // hidden google fields
     if(preview.dataset.fbzx) params.set('fbzx', preview.dataset.fbzx);
     if(preview.dataset.fvv) params.set('fvv', preview.dataset.fvv);
     if(preview.dataset.ph) params.set('pageHistory', preview.dataset.ph);
     if(preview.dataset.pr) params.set('partialResponse', preview.dataset.pr);
     if(preview.dataset.dr) params.set('draftResponse', preview.dataset.dr);
-    return params.toString();
+    if(!params.has('fvv')) params.set('fvv','1');
+    if(!params.has('pageHistory')) params.set('pageHistory','0');
+    if(!params.has('fbzx') && preview.dataset.fbzx) params.set('fbzx', preview.dataset.fbzx);
+    return params;
+  }
+  // iframe submit = browser IP, bukan Vercel IP (bypass 401)
+  let iframe=document.getElementById('gform_iframe');
+  if(!iframe){
+    iframe=document.createElement('iframe');
+    iframe.id='gform_iframe'; iframe.name='gform_iframe';
+    iframe.style.display='none';
+    document.body.appendChild(iframe);
   }
   const idxs = all ? accounts.map((_,i)=>i) : [parseInt(document.getElementById('gfSubmitAcc').value||'0')];
-  let ok=0,fail=0;
+  let ok=0;
   for(let n=0;n<idxs.length;n++){
     const i=idxs[n];
-    const body=buildBody(i);
-    toast(`Submit ${accounts[i].label||('Wallet '+(i+1))} ${n+1}/${idxs.length}`);
-    try{
-      const r=await fetch('/api/proxy?url='+encodeURIComponent(formResponse),{
-        method:'POST',
-        headers:{'Content-Type':'application/x-www-form-urlencoded'},
-        body
-      });
-      const j=await r.json();
-      console.log('[submit resp]', j);
-      if(j.ok) ok++; else { fail++; toast('Fail: '+ (j.body||j.error||'').slice(0,80)); }
-    }catch(e){ fail++; console.error(e); }
-    if(n<idxs.length-1) await new Promise(r=>setTimeout(r,900));
+    const params=buildParams(i);
+    toast(`Submit ${accounts[i].label||('Wallet '+(i+1))} ${n+1}/${idxs.length}...`);
+    await new Promise(resolve=>{
+      const form=document.createElement('form');
+      form.method='POST'; form.action=formResponse; form.target='gform_iframe'; form.style.display='none';
+      for(const [k,v] of params.entries()){
+        const inp=document.createElement('input'); inp.type='hidden'; inp.name=k; inp.value=v; form.appendChild(inp);
+      }
+      let done=false;
+      const timer=setTimeout(()=>{ if(!done){done=true; ok++; cleanup(); resolve();}}, 3000);
+      const onLoad=()=>{ if(done) return; done=true; clearTimeout(timer); ok++; cleanup(); resolve(); };
+      iframe.addEventListener('load', onLoad, {once:true});
+      function cleanup(){ try{form.remove();}catch{} iframe.removeEventListener('load', onLoad); }
+      document.body.appendChild(form); form.submit();
+    });
+    if(n<idxs.length-1) await new Promise(r=>setTimeout(r,1200));
   }
-  toast(`Selesai ok ${ok} fail ${fail}`);
+  toast(`Selesai submit ${ok}/${idxs.length} — cek Responses Sheet`);
 }
 function loadJson(){ document.getElementById('apiHeaders').value='{"Content-Type":"application/json"}'; document.getElementById('apiBody').value='{\n  "wallet": "{{wallet}}",\n  "twitter": "{{twitter}}",\n  "discord": "{{discord}}"\n}'; }
 function loadForm(){ document.getElementById('apiHeaders').value='{"Content-Type":"application/x-www-form-urlencoded"}'; document.getElementById('apiBody').value='wallet={{wallet}}&twitter={{twitter}}&discord={{discord}}'; }
