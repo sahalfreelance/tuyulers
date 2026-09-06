@@ -4,57 +4,93 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>WL Filler</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#080808;--card:#141414;--bd:#222;--bd2:#2a2a2a;--tx:#f0f0f0;--muted:#888;--acc:#fff}
-body{background:var(--bg);color:var(--tx);font-family:Inter,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
-a{color:inherit}
-/* header */
-header{position:sticky;top:0;z-index:10;background:rgba(8,8,8,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--bd);padding:14px 20px;display:flex;align-items:center;gap:16px}
-.logo{font-weight:900;letter-spacing:2px;font-size:13px}
-nav{display:flex;gap:6px}
-nav button{padding:7px 14px;border-radius:999px;border:1px solid var(--bd);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
-nav button.active{background:var(--acc);color:#000;border-color:var(--acc)}
-.badge{margin-left:auto;font-size:11px;color:var(--muted);border:1px solid var(--bd);padding:5px 10px;border-radius:999px}
-main{max-width:720px;margin:0 auto;padding:24px 16px}
-.tab{display:none}.tab.active{display:block}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:16px;margin-bottom:12px}
-.card h3{font-size:13px;letter-spacing:.5px;margin-bottom:10px}
-label{font-size:11px;letter-spacing:.6px;color:var(--muted);margin:12px 0 6px;display:block;text-transform:uppercase}
+:root{--bg:#070709;--panel:#111113;--card:#17171a;--line:#232326;--line2:#2c2c30;--tx:#f2f2f2;--mut:#7a7a82;--acc:#facc15;--acc2:#eab308}
+body{background:var(--bg);color:var(--tx);font-family:'Space Grotesk',system-ui,sans-serif;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(800px 400px at 20% 0%,rgba(250,204,21,.07),transparent 60%),radial-gradient(600px 400px at 90% 30%,rgba(120,90,255,.06),transparent 60%)}
+/* layout */
+.app{display:flex;min-height:100vh;position:relative}
+aside{width:220px;flex-shrink:0;border-right:1px solid var(--line);background:rgba(17,17,19,.7);backdrop-filter:blur(16px);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;padding:20px 14px;gap:18px}
+.brand{display:flex;align-items:center;gap:10px}
+.mark{width:28px;height:28px;border-radius:8px;background:var(--acc);display:grid;place-items:center;font-weight:900;color:#000;font-size:13px;letter-spacing:-.5px}
+.brand b{font-size:13px;letter-spacing:2px}
+.brand span{font-size:10px;color:var(--mut);letter-spacing:1px;display:block;margin-top:1px}
+.side-nav{display:flex;flex-direction:column;gap:6px}
+.side-nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--mut);font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+.side-nav button.active{background:var(--card);border-color:var(--line2);color:var(--tx)}
+.side-nav button:hover{color:var(--tx);background:#151518}
+.side-nav i{width:18px;height:18px;display:grid;place-items:center;font-size:13px;opacity:.8}
+.side-foot{margin-top:auto;padding-top:14px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+.count{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--mut)}
+.dot{width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px #22c55e}
+.main{flex:1;max-width:780px;margin:0 auto;padding:28px 20px 40px;width:100%}
+.top-mobile{display:none;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line);background:rgba(17,17,19,.8);backdrop-filter:blur(12px);position:sticky;top:0;z-index:5}
+.top-mobile b{letter-spacing:2px;font-size:13px}
+.pills{display:flex;gap:6px;overflow:auto}
+.pills button{white-space:nowrap;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--mut);font-size:12px;font-weight:700;cursor:pointer}
+.pills button.active{background:var(--tx);color:#000;border-color:var(--tx)}
+/* cards */
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.card + .card{margin-top:12px}
+.card h3{font-size:11px;letter-spacing:1.2px;color:var(--mut);text-transform:uppercase;margin-bottom:12px}
+label{font-size:10px;letter-spacing:.8px;color:var(--mut);text-transform:uppercase;margin:12px 0 6px;display:block}
 label:first-child{margin-top:0}
-input,textarea,select{width:100%;background:#0c0c0c;border:1px solid var(--bd);color:var(--tx);border-radius:10px;padding:10px 12px;font-size:13px;outline:none;transition:.15s}
-input:focus,textarea:focus,select:focus{border-color:#333;background:#0f0f0f}
-textarea{font-family:ui-monospace,monospace;font-size:12px;line-height:1.5;resize:vertical}
+input,textarea,select{width:100%;background:#0e0e10;border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:10px 12px;font-size:13px;outline:none;font-family:inherit}
+input:focus,textarea:focus,select:focus{border-color:#333;background:#121214}
+textarea{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;resize:vertical}
 .row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1}
-.btn{padding:9px 14px;border-radius:999px;border:0;background:var(--acc);color:#000;font-size:13px;font-weight:700;cursor:pointer;transition:.15s}
-.btn:hover{opacity:.9}.btn:active{transform:scale(.98)}
-.btn.sec{background:#1e1e1e;color:var(--tx);border:1px solid var(--bd2)}
-.btn.sec:hover{background:#252525}
-.btn.sm{padding:7px 12px;font-size:12px}
-.mono{font-family:ui-monospace,monospace;font-size:11px;word-break:break-all;color:#bbb}
-.log{background:#0c0c0c;border:1px solid var(--bd);border-radius:12px;padding:10px;font-family:ui-monospace,monospace;font-size:11px;white-space:pre-wrap;max-height:260px;overflow:auto;color:#aaa;min-height:40px}
-.fields{display:flex;flex-direction:column}
-.f{padding:8px 0;border-bottom:1px solid #1c1c1c;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.btn{padding:10px 14px;border-radius:10px;border:0;background:var(--acc);color:#000;font-size:13px;font-weight:800;cursor:pointer;transition:.15s}
+.btn:hover{filter:brightness(1.05)}.btn:active{transform:scale(.98)}
+.btn.ghost{background:#1e1e22;color:var(--tx);border:1px solid var(--line2)}
+.btn.ghost:hover{background:#252529}
+.btn.sm{padding:8px 12px;font-size:12px}
+.mono{font-family:'JetBrains Mono',monospace;font-size:11px;word-break:break-all;color:#b8b8c0}
+.fields{margin-top:10px}
+.f{padding:9px 0;border-bottom:1px solid #1e1e22;display:flex;justify-content:space-between;gap:12px;align-items:center}
 .f:last-child{border:0}
-.link-card{padding:10px 12px;background:#0c0c0c;border:1px solid var(--bd);border-radius:12px;margin-top:8px;display:flex;align-items:center;gap:10px}
-.link-card .mono{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bm{padding:8px 14px;border-radius:999px;border:1px solid var(--bd2);background:#1a1a1a;color:var(--tx);font-size:12px;font-weight:600;text-decoration:none;display:inline-block}
-.bm:first-child{background:var(--acc);color:#000;border-color:var(--acc)}
-pre.bmcode{margin-top:10px;background:#0c0c0c;border:1px solid var(--bd);border-radius:12px;padding:10px;font-size:10px;overflow:auto;white-space:pre-wrap;word-break:break-all;color:#666}
+.link{padding:10px 12px;background:#0e0e10;border:1px solid var(--line);border-radius:10px;margin-top:8px;display:flex;align-items:center;gap:10px}
+.link .mono{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bm{padding:8px 14px;border-radius:999px;border:1px solid var(--line2);background:#1e1e22;color:var(--tx);font-size:12px;font-weight:700;text-decoration:none;display:inline-block}
+.bm.primary{background:var(--acc);color:#000;border-color:var(--acc)}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--tx);color:#000;padding:10px 14px;border-radius:999px;font-size:12px;font-weight:700;opacity:0;pointer-events:none;transition:.2s;z-index:50}
+.toast.show{opacity:1}
+.tab{display:none}.tab.active{display:block}
+@media(max-width:760px){
+  aside{display:none}
+  .top-mobile{display:flex}
+  .main{padding:16px}
+}
 </style>
 </head>
 <body>
-<header>
-<div class="logo">WL FILLER</div>
-<nav id="tabs">
+<div class="top-mobile">
+<b>WL FILLER</b>
+<div class="pills" id="pills">
 <button data-tab="akun" class="active">Akun</button>
-<button data-tab="gform">Google Form</button>
+<button data-tab="gform">Form</button>
 <button data-tab="api">API</button>
 <button data-tab="sniff">Sniff</button>
+</div>
+</div>
+<div class="app">
+<aside>
+<div class="brand">
+<div class="mark">WL</div>
+<div><b>WL FILLER</b><span>AUTO FILL TOOL</span></div>
+</div>
+<nav class="side-nav" id="sideNav">
+<button data-tab="akun" class="active"><i>◐</i> Akun</button>
+<button data-tab="gform"><i>▦</i> Google Form</button>
+<button data-tab="api"><i>◈</i> Custom API</button>
+<button data-tab="sniff"><i>◎</i> Sniffer</button>
 </nav>
-<div class="badge" id="accCount">0</div>
-</header>
-<main>
+<div class="side-foot">
+<span class="count"><span id="accCount">0</span> akun</span><span class="dot"></span>
+</div>
+</aside>
+<div class="main">
 
 <!-- AKUN -->
 <div id="tab-akun" class="tab active">
@@ -63,7 +99,7 @@ pre.bmcode{margin-top:10px;background:#0c0c0c;border:1px solid var(--bd);border-
 <textarea id="accJson" rows="9" placeholder='[{"wallet":"0x...","twitter":"@handle","discord":"user#1234","email":"a@b.com"}]'></textarea>
 <div class="row" style="margin-top:10px">
 <button class="btn" onclick="saveAcc()">Simpan</button>
-<button class="btn sec" onclick="exportAcc()">Export</button>
+<button class="btn ghost" onclick="exportAcc()">Export</button>
 </div>
 <select id="accSelect" style="margin-top:10px"></select>
 </div>
@@ -73,16 +109,15 @@ pre.bmcode{margin-top:10px;background:#0c0c0c;border:1px solid var(--bd);border-
 <div id="tab-gform" class="tab">
 <div class="card">
 <h3>Google Form</h3>
-<input id="gfUrl" value="https://docs.google.com/forms/d/e/1FAIpQLSenfmPeBEWnQ6CcmkXkwWJfchAspQu2Jxx-BE2y8Psec0KaTg/viewform">
+<input id="gfUrl" placeholder="https://docs.google.com/forms/d/e/.../viewform">
 <div class="row" style="margin-top:10px">
 <button class="btn" onclick="detectGForm()">Detect</button>
-<button class="btn sec" onclick="genGfLinks()">Links</button>
+<button class="btn ghost" onclick="genGfLinks()">Generate Links</button>
 </div>
 <label>Mapping</label>
 <textarea id="gfMap" rows="3" placeholder="entry.123=wallet"></textarea>
-<div id="gfFields" class="fields" style="margin-top:8px"></div>
+<div id="gfFields" class="fields"></div>
 <div id="gfOut"></div>
-<div class="log" id="gfLog" style="margin-top:10px"></div>
 </div>
 </div>
 
@@ -90,25 +125,28 @@ pre.bmcode{margin-top:10px;background:#0c0c0c;border:1px solid var(--bd);border-
 <div id="tab-api" class="tab">
 <div class="card">
 <h3>Custom API</h3>
-<input id="apiUrl" value="https://script.google.com/macros/s/AKfycbzf4JTz9qIQh9Oq0lE4PzzDnERBZjpU5WxIq5fiNHm3REMKLinFy2GAABWOnkDuckBm/exec">
+<input id="apiUrl" placeholder="https://api.example.com/whitelist">
 <div class="row" style="margin-top:10px">
-<select id="apiMethod"><option>POST</option><option>GET</option><option>PUT</option></select>
-<input id="apiDelay" type="number" value="900">
+<select id="apiMethod"><option>POST</option><option>GET</option><option>PUT</option><option>PATCH</option></select>
+<input id="apiDelay" type="number" value="900" placeholder="delay ms">
 </div>
-<label>Headers</label>
-<textarea id="apiHeaders" rows="2">{"Content-Type":"application/x-www-form-urlencoded"}</textarea>
-<label>Body</label>
-<textarea id="apiBody" rows="5">x_handle={{twitter}}&wallet={{wallet}}&post_link=Submitted before X post&timestamp={{timestamp}}</textarea>
+<label>Headers (JSON)</label>
+<textarea id="apiHeaders" rows="2">{"Content-Type":"application/json"}</textarea>
+<label>Body — pakai {{wallet}} {{twitter}} {{discord}} {{email}} {{timestamp}}</label>
+<textarea id="apiBody" rows="6">{
+  "wallet": "{{wallet}}",
+  "twitter": "{{twitter}}",
+  "discord": "{{discord}}"
+}</textarea>
 <div class="row" style="margin-top:10px">
 <select id="apiAcc"></select>
 <button class="btn" onclick="sendOne()">Kirim</button>
 </div>
 <div class="row" style="margin-top:8px">
-<button class="btn sec sm" onclick="sendAll()">Kirim semua</button>
-<button class="btn sec sm" onclick="loadOwlarc()">Owlarc</button>
-<button class="btn sec sm" onclick="loadJsonPayload()">JSON</button>
+<button class="btn ghost sm" onclick="sendAll()">Kirim semua</button>
+<button class="btn ghost sm" onclick="loadJson()">JSON</button>
+<button class="btn ghost sm" onclick="loadForm()">Form</button>
 </div>
-<div class="log" id="apiLog" style="margin-top:10px"></div>
 </div>
 </div>
 
@@ -116,20 +154,23 @@ pre.bmcode{margin-top:10px;background:#0c0c0c;border:1px solid var(--bd);border-
 <div id="tab-sniff" class="tab">
 <div class="card">
 <h3>Sniffer</h3>
-<div style="display:flex;gap:8px;flex-wrap:wrap">
-<a id="bmDetect" class="bm" href="#">Detect</a>
+<p style="font-size:12px;color:var(--mut);line-height:1.6">Drag ke bookmark bar → buka halaman target → klik.</p>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+<a id="bmDetect" class="bm primary" href="#">Detect</a>
 <a id="bmFill" class="bm" href="#">AutoFill</a>
 </div>
-<pre class="bmcode" id="sniffCode"></pre>
-<textarea id="consoleSniff" rows="5" readonly style="margin-top:10px"></textarea>
-<button class="btn sec sm" style="margin-top:8px" onclick="copySniff()">Copy</button>
+<textarea id="consoleSniff" rows="4" readonly style="margin-top:12px"></textarea>
+<button class="btn ghost sm" style="margin-top:8px" onclick="copySniff()">Copy</button>
 </div>
 </div>
 
-</main>
+</div>
+</div>
+<div class="toast" id="toast"></div>
 <script>
 const LS='wl_accounts_v1';
 let accounts=[];
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800)}
 function loadAcc(){
   try{accounts=JSON.parse(localStorage.getItem(LS)||'[]')}catch{accounts=[]}
   document.getElementById('accJson').value=JSON.stringify(accounts,null,2);
@@ -140,8 +181,8 @@ function saveAcc(){
     const v=JSON.parse(document.getElementById('accJson').value||'[]');
     if(!Array.isArray(v)) throw 1;
     accounts=v; localStorage.setItem(LS,JSON.stringify(accounts));
-    updateSelects();
-  }catch(e){alert('JSON invalid')}
+    updateSelects(); toast('Tersimpan '+accounts.length+' akun');
+  }catch(e){toast('JSON invalid')}
 }
 function exportAcc(){
   const blob=new Blob([JSON.stringify(accounts,null,2)],{type:'application/json'});
@@ -159,121 +200,89 @@ function tpl(str, acc){
   const ctx={...extra,...acc};
   return str.replace(/\{\{(\w+)\}\}/g,(_,k)=>ctx[k]??'');
 }
-document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('#tabs button').forEach(x=>x.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active');
-  document.getElementById('tab-'+b.dataset.tab).classList.add('active');
-});
+function setTab(t){
+  document.querySelectorAll('#sideNav button, #pills button').forEach(b=>b.classList.toggle('active', b.dataset.tab===t));
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active', x.id==='tab-'+t));
+}
+document.querySelectorAll('#sideNav button, #pills button').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 async function detectGForm(){
   const url=document.getElementById('gfUrl').value.trim();
-  if(!url) return alert('isi URL');
-  const logEl=document.getElementById('gfLog');
-  logEl.textContent='';
-  const proxies=[
-    '/api/proxy?url='+encodeURIComponent(url),
-    'https://api.allorigins.win/raw?url='+encodeURIComponent(url),
-    'https://corsproxy.io/?'+encodeURIComponent(url),
-  ];
+  if(!url) return toast('Isi URL dulu');
+  const proxies=['/api/proxy?url='+encodeURIComponent(url),'https://api.allorigins.win/raw?url='+encodeURIComponent(url)];
   let html=null;
   for(const p of proxies){
-    try{
-      logEl.textContent+='try '+p.slice(0,50)+'...\n';
-      const r=await fetch(p);
-      if(!r.ok) throw new Error(r.status);
-      html=await r.text();
-      break;
-    }catch(e){ logEl.textContent+=' fail '+e.message+'\n'; }
+    try{const r=await fetch(p);if(!r.ok) throw 0; html=await r.text(); break;}catch{}
   }
-  if(!html){ logEl.textContent+='pakai Sniff > Detect di halaman form'; return; }
-  logEl.textContent+='ok '+html.length+' bytes\n';
+  if(!html) return toast('Gagal — pakai Sniff > Detect di halaman form');
   const entries=[...html.matchAll(/entry\.(\d+)/g)].map(m=>'entry.'+m[1]);
   const uniq=[...new Set(entries)];
-  const labels={};
-  const re=/\[(\d{6,}),&quot;(.*?)&quot;/g;
-  let m; while((m=re.exec(html))){ if(uniq.includes('entry.'+m[1])) labels['entry.'+m[1]]=m[2]; }
-  document.getElementById('gfFields').innerHTML=uniq.map(e=>{
-    const lab=labels[e]||'—';
-    return `<div class="f"><span class="mono">${e}</span><span style="font-size:11px;color:#888">${lab}</span></div>`;
-  }).join('') || '<span style="color:#666;font-size:12px">no field</span>';
-  const guessMap=uniq.map(e=>{
+  const labels={}; const re=/\[(\d{6,}),&quot;(.*?)&quot;/g; let m; while((m=re.exec(html))) if(uniq.includes('entry.'+m[1])) labels['entry.'+m[1]]=m[2];
+  document.getElementById('gfFields').innerHTML=uniq.map(e=>`<div class="f"><span class="mono">${e}</span><span style="font-size:11px;color:var(--mut)">${labels[e]||'—'}</span></div>`).join('') || '<span style="color:var(--mut);font-size:12px">no field</span>';
+  document.getElementById('gfMap').value=uniq.map(e=>{
     const lab=(labels[e]||'').toLowerCase();
-    let f='custom';
-    if(lab.includes('wallet')||lab.includes('address')||lab.includes('evm')) f='wallet';
-    else if(lab.includes('discord')) f='discord';
-    else if(lab.includes('twitter')||lab.includes('handle')||lab.includes('follow')) f='twitter';
-    else if(lab.includes('like')||lab.includes('retweet')||lab.includes('pinned')) f='twitter';
-    else if(lab.includes('email')) f='email';
+    let f='custom'; if(lab.includes('wallet')||lab.includes('address')) f='wallet'; else if(lab.includes('discord')) f='discord'; else if(lab.includes('twitter')||lab.includes('handle')||lab.includes('follow')||lab.includes('pinned')) f='twitter'; else if(lab.includes('email')) f='email';
     return e+'='+f;
   }).join('\n');
-  document.getElementById('gfMap').value=guessMap;
+  toast('Detect '+uniq.length+' field');
 }
 function genGfLinks(){
   const base=document.getElementById('gfUrl').value.trim().split('?')[0];
   const map=document.getElementById('gfMap').value.trim().split('\n').filter(Boolean);
-  if(!base) return alert('isi URL');
-  if(!accounts.length) return alert('isi Akun dulu');
+  if(!base) return toast('Isi URL');
+  if(!accounts.length) return toast('Isi Akun dulu');
   const out=document.getElementById('gfOut'); out.innerHTML='';
   accounts.forEach((acc,i)=>{
     const params=new URLSearchParams();
-    map.forEach(l=>{
-      const [entry,field]=l.split('=').map(s=>s.trim());
-      if(entry&&field&&acc[field]) params.set(entry, acc[field]);
-    });
+    map.forEach(l=>{const [e,f]=l.split('=').map(s=>s.trim()); if(e&&f&&acc[f]) params.set(e,acc[f])});
     const url=base+'?'+params.toString();
-    const d=document.createElement('div'); d.className='link-card';
+    const d=document.createElement('div'); d.className='link';
     d.innerHTML=`<span class="mono">${url}</span><button class="btn sm" onclick="window.open('${url}','_blank')">Buka</button>`;
     out.appendChild(d);
   });
+  toast('Links generated');
 }
-function aLog(s){ const el=document.getElementById('apiLog'); el.textContent+='['+new Date().toLocaleTimeString()+'] '+s+'\n'; el.scrollTop=el.scrollHeight; }
-function loadOwlarc(){
-  document.getElementById('apiUrl').value='https://script.google.com/macros/s/AKfycbzf4JTz9qIQh9Oq0lE4PzzDnERBZjpU5WxIq5fiNHm3REMKLinFy2GAABWOnkDuckBm/exec';
-  document.getElementById('apiHeaders').value='{"Content-Type":"application/x-www-form-urlencoded"}';
-  document.getElementById('apiBody').value='x_handle={{twitter}}&wallet={{wallet}}&post_link=Submitted before X post&timestamp={{timestamp}}';
-}
-function loadJsonPayload(){ document.getElementById('apiHeaders').value='{"Content-Type":"application/json"}'; document.getElementById('apiBody').value='{\n  "wallet": "{{wallet}}",\n  "twitter": "{{twitter}}",\n  "discord": "{{discord}}"\n}'; }
+function loadJson(){ document.getElementById('apiHeaders').value='{"Content-Type":"application/json"}'; document.getElementById('apiBody').value='{\n  "wallet": "{{wallet}}",\n  "twitter": "{{twitter}}",\n  "discord": "{{discord}}"\n}'; }
+function loadForm(){ document.getElementById('apiHeaders').value='{"Content-Type":"application/x-www-form-urlencoded"}'; document.getElementById('apiBody').value='wallet={{wallet}}&twitter={{twitter}}&discord={{discord}}'; }
 async function sendOne(){
   const idx=document.getElementById('apiAcc').value;
   const list = idx==-1 ? accounts : [accounts[idx]];
-  if(!list.length) return alert('no akun');
+  if(!list.length) return toast('No akun');
   await sendList(list);
 }
-async function sendAll(){ if(!accounts.length) return alert('no akun'); await sendList(accounts); }
+async function sendAll(){ if(!accounts.length) return toast('No akun'); await sendList(accounts); }
 async function sendList(list){
   const url=document.getElementById('apiUrl').value.trim();
   const method=document.getElementById('apiMethod').value;
-  let headers={}; try{ headers=JSON.parse(document.getElementById('apiHeaders').value||'{}')}catch{return alert('headers invalid')}
+  let headers={}; try{ headers=JSON.parse(document.getElementById('apiHeaders').value||'{}')}catch{return toast('Headers invalid')}
   const bodyTpl=document.getElementById('apiBody').value;
   const delay=parseInt(document.getElementById('apiDelay').value||'800');
-  if(!url) return alert('isi URL');
+  if(!url) return toast('Isi URL');
+  let ok=0, fail=0;
   for(let i=0;i<list.length;i++){
     const acc=list[i];
     let bodyStr=tpl(bodyTpl, acc);
     let h={}; for(const [k,v] of Object.entries(headers)) h[k]=tpl(String(v), acc);
-    const isJson = bodyStr.trim().startsWith('{');
-    aLog(`→ ${acc.wallet||acc.twitter||i}`);
     try{
       const opts={method, headers:h};
       if(method!=='GET') opts.body=bodyStr;
       const res=await fetch(url, opts);
-      const txt=await res.text();
-      aLog(` ${res.status} ${txt.slice(0,800)}`);
-    }catch(e){ aLog(` ERR ${e.message}`)}
+      if(res.ok) ok++; else fail++;
+    }catch{ fail++; }
+    toast(`Progress ${i+1}/${list.length} · ok ${ok} fail ${fail}`);
     if(i<list.length-1) await new Promise(r=>setTimeout(r,delay));
   }
+  toast(`Selesai · ok ${ok} fail ${fail}`);
 }
 function buildBM(){
   const accIdx=document.getElementById('accSelect').value||0;
   const acc=accounts[accIdx]||{};
-  const detectCode=`javascript:(()=>{console.clear();const entries=[...document.documentElement.innerHTML.matchAll(/entry\\.(\\d+)/g)].map(m=>'entry.'+m[1]);const uniq=[...new Set(entries)];console.log('entries',uniq);const f=window.fetch;window.fetch=async function(u,o){console.log('[WL fetch]',u,o);const r=await f.apply(this,arguments);r.clone().text().then(t=>console.log('[WL resp]',t.slice(0,2000)));return r};const o=XMLHttpRequest.prototype.open,s=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(m,u){this._u=u;return o.apply(this,arguments)};XMLHttpRequest.prototype.send=function(b){console.log('[WL XHR]',this._u,b);this.addEventListener('load',function(){console.log('[WL XHR resp]',this.responseText?.slice(0,2000))});return s.apply(this,arguments)};document.addEventListener('submit',e=>{const fd=new FormData(e.target);console.log('[WL form]',e.target.action,Object.fromEntries(fd.entries()))},{capture:true});alert('WL Detect aktif: '+uniq.join(', '))})()`;
-  const fillCode=`javascript:(()=>{const acc=${JSON.stringify(acc).replace(/</g,'\\u003c')};const map={wallet:['wallet','address','evm'],discord:['discord'],twitter:['twitter','handle'],email:['email']};let c=0;[...document.querySelectorAll('input,textarea,select')].forEach(el=>{const k=((el.name||'')+' '+(el.placeholder||'')+' '+(el.getAttribute('aria-label')||'')).toLowerCase();for(const [f,ks] of Object.entries(map)){if(ks.some(x=>k.includes(x))&&acc[f]){el.focus();el.value=acc[f];el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));c++;break}}});alert('filled '+c)})()`;
+  const detectCode=`javascript:(()=>{const e=[...document.documentElement.innerHTML.matchAll(/entry\\.(\\d+)/g)].map(m=>'entry.'+m[1]);const u=[...new Set(e)];console.log('entries',u);const f=window.fetch;window.fetch=async function(x,o){console.log('[WL fetch]',x,o);const r=await f.apply(this,arguments);r.clone().text().then(t=>console.log('[WL resp]',t.slice(0,2000)));return r};const o=XMLHttpRequest.prototype.open,s=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(m,x){this._u=x;return o.apply(this,arguments)};XMLHttpRequest.prototype.send=function(b){console.log('[WL XHR]',this._u,b);this.addEventListener('load',function(){console.log('[WL resp]',this.responseText?.slice(0,2000))});return s.apply(this,arguments)};document.addEventListener('submit',ev=>{const fd=new FormData(ev.target);console.log('[WL form]',ev.target.action,Object.fromEntries(fd.entries()))},{capture:true});alert('WL Detect: '+u.join(', '))})()`;
+  const fillCode=`javascript:(()=>{const a=${JSON.stringify(acc).replace(/</g,'\\u003c')};const m={wallet:['wallet','address'],discord:['discord'],twitter:['twitter','handle'],email:['email']};let c=0;[...document.querySelectorAll('input,textarea,select')].forEach(e=>{const k=((e.name||'')+' '+(e.placeholder||'')+' '+(e.getAttribute('aria-label')||'')).toLowerCase();for(const [f,ks] of Object.entries(m)){if(ks.some(x=>k.includes(x))&&a[f]){e.focus();e.value=a[f];e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));c++;break}}});alert('filled '+c)})()`;
   document.getElementById('bmDetect').href=detectCode;
   document.getElementById('bmFill').href=fillCode;
-  document.getElementById('sniffCode').textContent=detectCode;
-  document.getElementById('consoleSniff').value=`const f=window.fetch;window.fetch=async function(u,o){console.log('[WL fetch]',u,o);return f.apply(this,arguments)};`;
+  document.getElementById('consoleSniff').value=`const f=window.fetch;window.fetch=async function(u,o){console.log('[WL]',u,o);return f.apply(this,arguments)}`;
 }
-function copySniff(){ navigator.clipboard.writeText(document.getElementById('consoleSniff').value); }
+function copySniff(){ navigator.clipboard.writeText(document.getElementById('consoleSniff').value); toast('Copied'); }
 document.getElementById('accSelect').addEventListener('change', buildBM);
 loadAcc();
 </script>
